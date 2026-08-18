@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Qiskit Certification Section 1 Trainer</title>
+<style>
+  :root{
+    --bg:#0f172a; --panel:#111827; --panel2:#1f2937; --text:#f8fafc;
+    --muted:#94a3b8; --accent:#7c3aed; --good:#16a34a; --bad:#dc2626;
+    --line:#334155; --chip:#1e293b;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:linear-gradient(180deg,#0f172a,#111827);color:var(--text)}
+  .wrap{max-width:980px;margin:0 auto;padding:24px}
+  .hero{display:flex;gap:18px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap}
+  h1{margin:0;font-size:clamp(28px,4vw,44px)}
+  .sub{color:var(--muted);margin-top:8px}
+  .badge{display:inline-block;background:var(--chip);border:1px solid var(--line);padding:7px 10px;border-radius:999px;color:#cbd5e1;font-size:13px}
+  .toolbar,.stats,.card,.review{background:rgba(17,24,39,.95);border:1px solid var(--line);border-radius:18px}
+  .toolbar{padding:14px;margin:20px 0;display:flex;gap:10px;flex-wrap:wrap}
+  button,select{border:1px solid var(--line);background:#0b1220;color:var(--text);padding:10px 14px;border-radius:12px;font-weight:700;cursor:pointer}
+  button.primary{background:var(--accent);border-color:var(--accent)}
+  button.good{background:var(--good);border-color:var(--good)}
+  button.bad{background:var(--bad);border-color:var(--bad)}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:0;margin-bottom:20px;overflow:hidden}
+  .stat{padding:14px;border-right:1px solid var(--line)}
+  .stat:last-child{border-right:none}
+  .stat b{font-size:22px;display:block}
+  .stat span{color:var(--muted);font-size:12px}
+  .card{padding:22px}
+  .meta{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+  .qtext{font-size:21px;line-height:1.45;margin:10px 0 18px}
+  pre{background:#020617;border:1px solid var(--line);padding:14px;border-radius:12px;overflow:auto;color:#e2e8f0}
+  .opts{display:grid;gap:10px}
+  .opt{display:flex;gap:10px;align-items:flex-start;background:#0b1220;border:1px solid var(--line);padding:13px;border-radius:12px;cursor:pointer}
+  .opt:hover{border-color:#64748b}
+  .opt input{margin-top:3px}
+  .feedback{margin-top:18px;padding:14px;border-radius:12px;display:none}
+  .feedback.good{display:block;background:rgba(22,163,74,.15);border:1px solid rgba(22,163,74,.55)}
+  .feedback.bad{display:block;background:rgba(220,38,38,.15);border:1px solid rgba(220,38,38,.55)}
+  .explain{color:#dbeafe;line-height:1.5;margin-top:8px}
+  .actions{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap}
+  .progress{height:10px;background:#020617;border-radius:999px;overflow:hidden;margin:16px 0 0}
+  .bar{height:100%;background:var(--accent);width:0%}
+  .review{margin-top:20px;padding:18px}
+  .review h3{margin-top:0}
+  .weak{display:flex;gap:8px;flex-wrap:wrap}
+  .weak .badge{background:#3f1d1d;border-color:#7f1d1d}
+  .footer{color:var(--muted);font-size:12px;margin:20px 0 10px;line-height:1.5}
+  .hidden{display:none}
+  @media(max-width:700px){.stats{grid-template-columns:1fr 1fr}.stat:nth-child(2){border-right:none}.stat:nth-child(-n+2){border-bottom:1px solid var(--line)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hero">
+    <div>
+      <h1>Qiskit Certification Trainer</h1>
+      <div class="sub">Section 1 — Perform Quantum Computing</div>
+    </div>
+    <span class="badge">C1000-179 • Qiskit v2.x</span>
+  </div>
+
+  <div class="toolbar">
+    <select id="mode">
+      <option value="practice">Practice Mode</option>
+      <option value="exam">Exam Mode</option>
+    </select>
+    <select id="topic">
+      <option value="all">All Section 1 Topics</option>
+      <option value="pauli">Task 1.1 — Pauli Operators</option>
+      <option value="ops">Task 1.2 — Quantum Operations</option>
+    </select>
+    <button class="primary" id="startBtn">Start / Restart</button>
+    <button id="reviewBtn">Review Missed</button>
+    <button id="resetBtn">Reset Progress</button>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><b id="score">0</b><span>Correct</span></div>
+    <div class="stat"><b id="attempted">0</b><span>Attempted</span></div>
+    <div class="stat"><b id="accuracy">0%</b><span>Accuracy</span></div>
+    <div class="stat"><b id="missed">0</b><span>Missed to Review</span></div>
+  </div>
+
+  <div class="card">
+    <div class="meta">
+      <span class="badge" id="topicBadge">Topic</span>
+      <span class="badge" id="sourceBadge">Source</span>
+      <span class="badge" id="typeBadge">Single choice</span>
+    </div>
+    <div class="qtext" id="question">Press Start / Restart to begin.</div>
+    <pre id="code" class="hidden"></pre>
+    <div class="opts" id="options"></div>
+
+    <div class="feedback" id="feedback">
+      <strong id="feedbackTitle"></strong>
+      <div class="explain" id="explanation"></div>
+    </div>
+
+    <div class="actions">
+      <button class="primary" id="submitBtn" disabled>Submit</button>
+      <button id="nextBtn" disabled>Next</button>
+    </div>
+    <div class="progress"><div class="bar" id="bar"></div></div>
+  </div>
+
+  <div class="review">
+    <h3>Weak concepts</h3>
+    <div class="weak" id="weakConcepts"><span class="badge">No data yet</span></div>
+  </div>
+
+  <div class="footer">
+    Bank-derived questions are adapted from the Quantum Tokyo Section 1 material pasted into this chat.
+    Original practice questions are clearly labeled. This is a study tool, not an official IBM exam or leaked exam bank.
+  </div>
+</div>
+
+<script>
+const QUESTIONS = [
+  {
+    id:"p1", topic:"pauli", source:"Bank-derived", type:"single", concept:"Pauli matrix / tensor product",
+    q:"Which matrix is generated by the following code?",
+    code:`from qiskit.quantum_info import Pauli
+p = Pauli("XZ")
+print(p.to_matrix())`,
+    options:[
+      `[[0,0,1,0],[0,0,0,-1],[1,0,0,0],[0,-1,0,0]]`,
+      `[[0,1,0,0],[1,0,0,0],[0,0,0,-1],[0,0,-1,0]]`,
+      `[[1,0,0,0],[0,-1,0,0],[0,0,1,0],[0,0,0,-1]]`,
+      `[[0,-i,0,0],[i,0,0,0],[0,0,0,i],[0,0,-i,0]]`
+    ],
+    answer:[0],
+    explain:`Pauli("XZ") corresponds to X ⊗ Z. Applying it to |00>, |01>, |10>, |11> gives |10>, -|11>, |00>, -|01>; those outputs form the four columns.`
+  },
+  {
+    id:"p2", topic:"pauli", source:"Bank-derived", type:"multi", concept:"Pauli constructor",
+    q:"Which input formats are valid when creating a Pauli object? Select all that apply.",
+    options:[
+      `Pauli("IXYZ")`,
+      `Pauli([1, 0, 1, 1])`,
+      `Pauli((z_bits, x_bits))`,
+      `Pauli(np.array([[0, 1],[1, 0]]))`
+    ],
+    answer:[0,2],
+    explain:`A Pauli can be created from a label string or from binary (z_bits, x_bits). A raw matrix should be represented with Operator instead.`
+  },
+  {
+    id:"p3", topic:"pauli", source:"Original practice", type:"single", concept:"Binary Pauli representation",
+    q:"For one qubit, which Pauli is represented by z=1 and x=1?",
+    options:["I","X","Y","Z"], answer:[2],
+    explain:`Binary Pauli encoding: (z,x) = (0,0)→I, (0,1)→X, (1,0)→Z, (1,1)→Y.`
+  },
+  {
+    id:"p4", topic:"pauli", source:"Original practice", type:"single", concept:"Pauli multiplication",
+    q:"What is XZ?",
+    options:["iY","-iY","iX","-iZ"], answer:[1],
+    explain:`The cyclic products are XY=iZ, YZ=iX, ZX=iY. Reversing the order changes the sign, so XZ=-iY.`
+  },
+  {
+    id:"p5", topic:"pauli", source:"Original practice", type:"single", concept:"Pauli multiplication",
+    q:"What is ZY?",
+    options:["iX","-iX","iZ","-iZ"], answer:[1],
+    explain:`YZ=iX, so reversing the order gives ZY=-iX.`
+  },
+  {
+    id:"p6", topic:"pauli", source:"Original practice", type:"single", concept:"Pauli phase multiplication",
+    q:"What is (-i)(+i)?",
+    options:["+1","-1","+i","-i"], answer:[0],
+    explain:`(-i)(i) = -i² = -(-1) = +1.`
+  },
+  {
+    id:"p7", topic:"pauli", source:"Original practice", type:"single", concept:"Pauli phase multiplication",
+    q:"What is (-i)(-i)?",
+    options:["+1","-1","+i","-i"], answer:[1],
+    explain:`(-i)² = i² = -1.`
+  },
+  {
+    id:"p8", topic:"pauli", source:"Original practice", type:"single", concept:"Pauli string ordering",
+    q:'In Qiskit Pauli("IYZ"), which operator acts on q0?',
+    options:["I","Y","Z","None"], answer:[2],
+    explain:`Qiskit Pauli strings are ordered with q0 at the rightmost character.`
+  },
+  {
+    id:"p9", topic:"pauli", source:"Original practice", type:"single", concept:"Pauli matrix / overall phase",
+    q:'Which diagonal corresponds to Pauli("-ZI")?',
+    options:["(-1,-1,1,1)","(-1,1,-1,1)","(1,1,-1,-1)","(1,-1,-1,1)"], answer:[0],
+    explain:`ZI = (1,1,-1,-1); the leading minus flips every entry.`
+  },
+  {
+    id:"p10", topic:"pauli", source:"Original practice", type:"single", concept:"Pauli composition arithmetic",
+    q:"Evaluate (X ⊗ Y)(Y ⊗ X).",
+    options:["ZZ","-ZZ","iZZ","-iZZ"], answer:[0],
+    explain:`XY=iZ and YX=-iZ; (i)(-i)=+1, so the result is ZZ.`
+  },
+
+  {
+    id:"o1", topic:"ops", source:"Bank-derived", type:"single", concept:"append",
+    q:"Which method appends one or more instructions to the end of the circuit, modifying the circuit in place?",
+    options:["compose","append","to_instruction","decompose"], answer:[1],
+    explain:`append() adds an instruction to the existing circuit in place.`
+  },
+  {
+    id:"o2", topic:"ops", source:"Bank-derived", type:"single", concept:"compose",
+    q:"By default, what does QuantumCircuit.compose(other) return when called without inplace=True?",
+    options:[
+      "It mutates the left-hand circuit and returns None.",
+      "It returns a new combined circuit.",
+      "It mutates the right-hand circuit and returns it.",
+      "It raises an error unless inplace is specified."
+    ], answer:[1],
+    explain:`Without inplace=True, compose() returns a new combined circuit.`
+  },
+  {
+    id:"o3", topic:"ops", source:"Bank-derived", type:"single", concept:"compose / qubit remapping",
+    q:"Which code composes qc_b onto qc_a so qc_b qubits (0,1) map to qc_a qubits (1,3), without mutating qc_a?",
+    options:[
+      `qc_a.compose(qc_b, qubits=[1, 3])`,
+      `qc_a.compose(qc_b, [1, 3], inplace=True)`,
+      `qc_a.append(qc_b, [1, 3])`,
+      `qc_b.compose(qc_a, qubits=[1, 3])`
+    ], answer:[0],
+    explain:`compose(..., qubits=[1,3]) remaps qc_b onto those target qubits. Omitting inplace=True leaves qc_a unchanged and returns a new circuit.`
+  },
+  {
+    id:"o4", topic:"ops", source:"Bank-derived", type:"single", concept:"to_instruction / append",
+    q:"Which snippet converts a subcircuit to an instruction and appends it to another circuit?",
+    options:[
+`inst = qc_b.to_instruction()
+qc_a.append(inst, [1, 3])`,
+`inst = qc_b.to_gate()
+qc_a.compose(inst, [1, 3])`,
+`inst = qc_b.compose()
+qc_a.append(inst, [1, 3])`,
+`inst = qc_b.control()
+qc_a.append(inst, [1, 3])`
+    ], answer:[0],
+    explain:`to_instruction() converts a circuit to an Instruction, which can then be appended.`
+  },
+  {
+    id:"o5", topic:"ops", source:"Bank-derived", type:"multi", concept:"to_gate / control",
+    q:"Which statements about turning circuits into reusable operations are correct? Select all that apply.",
+    options:[
+      "to_gate() requires the source circuit to be unitary.",
+      "A Gate produced by to_gate() can be made controlled via .control().",
+      "to_instruction() returns a Gate.",
+      "to_gate() always mutates the original circuit."
+    ], answer:[0,1],
+    explain:`to_gate() is for unitary circuits and produces a Gate that can be controlled. to_instruction() returns an Instruction, not necessarily a Gate.`
+  },
+  {
+    id:"o6", topic:"ops", source:"Bank-derived", type:"single", concept:"barrier",
+    q:"What happens if qc.barrier() is called with no qubit arguments?",
+    options:[
+      "It inserts no operation.",
+      "It raises an error.",
+      "It applies a barrier to all qubits in the circuit.",
+      "It applies a barrier only to measured qubits."
+    ], answer:[2],
+    explain:`With no qubit arguments, barrier() applies to all qubits in the circuit.`
+  },
+  {
+    id:"o7", topic:"ops", source:"Bank-derived", type:"single", concept:"decompose",
+    q:"Which statement about decompose() on a circuit is correct?",
+    options:[
+      "It mutates the circuit to expand each instruction into its definition.",
+      "It returns a new circuit with instructions expanded into their definitions.",
+      "It removes all non-unitary operations from the circuit.",
+      "It only affects instructions with labels."
+    ], answer:[1],
+    explain:`decompose() returns a new circuit with composite instructions expanded into their definitions.`
+  },
+  {
+    id:"o8", topic:"ops", source:"Bank-derived", type:"single", concept:"QuantumCircuit.data",
+    q:"The QuantumCircuit.data attribute is best described as:",
+    options:[
+      "A list of Instruction objects only.",
+      "A list of CircuitInstruction objects, each with an operation and its qubits/clbits.",
+      "A tuple of (operation, parameters) pairs.",
+      "A dictionary keyed by gate names."
+    ], answer:[1],
+    explain:`QuantumCircuit.data is a sequence of CircuitInstruction objects containing operation, qubits and clbits.`
+  },
+  {
+    id:"o9", topic:"ops", source:"Bank-derived", type:"single", concept:"custom unitary",
+    q:'Which call correctly applies a custom 4×4 unitary U to qubits [0,1] with label "U"?',
+    options:[
+      `qc.unitary(U, [0, 1], label="U")`,
+      `qc.append(U, [0, 1], label="U")`,
+      `qc.compose(U, [0, 1], inplace=True)`,
+      `qc.to_gate(U, [0, 1], label="U")`
+    ], answer:[0],
+    explain:`QuantumCircuit.unitary() applies a matrix/operator as a unitary instruction to the specified qubits.`
+  },
+  {
+    id:"o10", topic:"ops", source:"Bank-derived", type:"single", concept:"multiple-controlled rotations",
+    q:"Which method applies a multiple-controlled Z-axis rotation of angle lam with control qubits in controls and target t?",
+    options:[
+      `qc.mcrx(lam, controls, t)`,
+      `qc.mcry(lam, controls, t)`,
+      `qc.mcrz(lam, controls, t)`,
+      `qc.crz(lam, controls, t)`
+    ], answer:[2],
+    explain:`mcrz() is the multiple-controlled RZ rotation.`
+  },
+  {
+    id:"o11", topic:"ops", source:"Bank-derived", type:"single", concept:"CircuitInstruction / append",
+    q:"Which statement about append and CircuitInstruction is correct?",
+    options:[
+      "When passing a CircuitInstruction to append, you must also pass qargs and cargs.",
+      "Passing a CircuitInstruction to append forbids also passing separate qargs or cargs.",
+      "append cannot accept CircuitInstruction objects.",
+      "append never returns a handle to the added instruction(s)."
+    ], answer:[1],
+    explain:`A CircuitInstruction already contains its operand mapping, so separate qargs/cargs are not supplied with it.`
+  },
+  {
+    id:"o12", topic:"ops", source:"Bank-derived", type:"single", concept:"circuit library / append",
+    q:"Which snippet uses the circuit library to append a single-qubit H operation to qubit 0?",
+    options:[
+      `qc.append(HGate(), [0])`,
+      `qc.compose(HGate(), [0])`,
+      `qc.to_instruction(HGate(), [0])`,
+      `qc.control(HGate(), [0])`
+    ], answer:[0],
+    explain:`HGate() constructs the library gate, and append(...,[0]) adds it to q0.`
+  },
+  {
+    id:"o13", topic:"ops", source:"Bank-derived", type:"single", concept:"controlled reusable gate",
+    q:"You built a two-qubit subcircuit qc_b and want a controlled version with one control and two targets. Which sequence is correct?",
+    options:[
+`gate = qc_b.to_gate().control()
+qc_a.append(gate, [c, t0, t1])`,
+`gate = qc_b.to_instruction().control()
+qc_a.append(gate, [c, t0, t1])`,
+`gate = qc_b.compose().control()
+qc_a.append(gate, [c, t0, t1])`,
+`gate = qc_b.control()
+qc_a.append(gate, [c, t0, t1])`
+    ], answer:[0],
+    explain:`Convert the unitary subcircuit to a Gate, call .control(), then append the controlled gate with control first followed by targets.`
+  },
+  {
+    id:"o14", topic:"ops", source:"Bank-derived", type:"single", concept:"compose / qubit remapping",
+    q:"Which statement about qubit remapping when composing circuits is correct?",
+    options:[
+      "compose does not support remapping; qubits must match by index.",
+      "You can specify a list of target qubit indices via the qubits argument.",
+      "Remapping is only available with append, not compose.",
+      "Remapping requires both circuits to have the same number of classical bits."
+    ], answer:[1],
+    explain:`compose() supports qubit remapping via its qubits argument.`
+  },
+  {
+    id:"o15", topic:"ops", source:"Bank-derived", type:"multi", concept:"reusable operations",
+    q:"Which methods can convert a circuit into a reusable operation that can be inserted into other circuits? Select all that apply.",
+    options:["to_instruction()","to_gate()","decompose()","append()"], answer:[0,1],
+    explain:`to_instruction() and to_gate() convert circuits into reusable operations. decompose() expands; append() inserts.`
+  },
+  {
+    id:"o16", topic:"ops", source:"Bank-derived", type:"single", concept:"circuit depth",
+    q:"Which method returns the number of layers of quantum gates that must be executed sequentially in a circuit?",
+    options:["size()","depth()","count_ops()","width()"], answer:[1],
+    explain:`depth() returns circuit depth: the maximum number of sequential operation layers along any path.`
+  },
+  {
+    id:"o17", topic:"ops", source:"Bank-derived", type:"single", concept:"Instruction vs QuantumCircuit",
+    q:"What is a key conceptual difference between an Instruction and a QuantumCircuit in Qiskit?",
+    options:[
+      "Instructions are immutable, while circuits are typically mutable.",
+      "Circuits can only contain unitary operations, while instructions can include non-unitary ones.",
+      "Instructions support barriers, while circuits do not.",
+      "Circuits are immutable, while instructions are mutable."
+    ], answer:[0],
+    explain:`A QuantumCircuit is a mutable container for circuit construction; Instruction objects represent operations and are treated as reusable operation objects.`
+  },
+  {
+    id:"o18", topic:"ops", source:"Bank-derived", type:"single", concept:"parameterized circuits",
+    q:"Which statement about parameterized circuits in Qiskit is correct?",
+    options:[
+      "Parameters must be numerical at circuit creation time.",
+      "Undefined parameters can be assigned values later using assign_parameters().",
+      "The parameters attribute always returns an empty list.",
+      "Parameterized circuits cannot be transpiled."
+    ], answer:[1],
+    explain:`Symbolic Parameters can remain unbound and be assigned later with assign_parameters().`
+  },
+  {
+    id:"o19", topic:"ops", source:"Bank-derived", type:"single", concept:"Parameter",
+    q:"Which object type represents a symbolic parameter in a Qiskit circuit?",
+    options:["ParameterView","ParameterExpression","Parameter","SymbolicVariable"], answer:[2],
+    explain:`Parameter is the symbolic variable type typically created with Parameter("θ").`
+  },
+  {
+    id:"o20", topic:"ops", source:"Bank-derived", type:"single", concept:"variational circuits",
+    q:"Why are parameterized circuits useful in variational algorithms?",
+    options:[
+      "They reduce the number of qubits required.",
+      "They allow constructing/transpiling a circuit once and reusing it with different parameter values.",
+      "They automatically parallelize parameter updates across multiple backends.",
+      "They eliminate the need for classical optimizers."
+    ], answer:[1],
+    explain:`Parameterized circuits separate circuit structure from parameter values, which is ideal for repeated evaluation during optimization.`
+  }
+];
+
+let state = {
+  order: [], idx:0, correct:0, attempted:0,
+  reviewing:false, answered:false,
+  misses: JSON.parse(localStorage.getItem("qiskit_s1_misses") || "{}"),
+  conceptStats: JSON.parse(localStorage.getItem("qiskit_s1_concepts") || "{}")
+};
+
+const $ = id => document.getElementById(id);
+
+function filteredQuestions(){
+  const topic = $("topic").value;
+  return QUESTIONS.filter(q => topic === "all" || q.topic === topic);
+}
+function shuffle(arr){
+  const a=[...arr];
+  for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+  return a;
+}
+function save(){
+  localStorage.setItem("qiskit_s1_misses", JSON.stringify(state.misses));
+  localStorage.setItem("qiskit_s1_concepts", JSON.stringify(state.conceptStats));
+}
+function updateStats(){
+  $("score").textContent=state.correct;
+  $("attempted").textContent=state.attempted;
+  $("accuracy").textContent=state.attempted?Math.round(state.correct/state.attempted*100)+"%":"0%";
+  $("missed").textContent=Object.values(state.misses).filter(Boolean).length;
+  renderWeak();
+}
+function renderWeak(){
+  const wrap=$("weakConcepts"); wrap.innerHTML="";
+  const entries=Object.entries(state.conceptStats)
+    .map(([k,v])=>({k,...v,rate:v.attempts? v.correct/v.attempts:1}))
+    .filter(x=>x.attempts>=1 && x.rate<0.8)
+    .sort((a,b)=>a.rate-b.rate);
+  if(!entries.length){wrap.innerHTML='<span class="badge">No weak concepts detected</span>';return;}
+  entries.slice(0,8).forEach(x=>{
+    const s=document.createElement("span"); s.className="badge";
+    s.textContent=`${x.k}: ${Math.round(x.rate*100)}%`;
+    wrap.appendChild(s);
+  });
+}
+function start(review=false){
+  state.correct=0; state.attempted=0; state.idx=0; state.answered=false; state.reviewing=review;
+  let qs=filteredQuestions();
+  if(review){
+    const ids=Object.entries(state.misses).filter(([,v])=>v).map(([k])=>k);
+    qs=QUESTIONS.filter(q=>ids.includes(q.id));
+    if(!qs.length){ alert("No missed questions to review."); return; }
+  }
+  state.order=shuffle(qs.map(q=>q.id));
+  render();
+  updateStats();
+}
+function current(){
+  return QUESTIONS.find(q=>q.id===state.order[state.idx]);
+}
+function render(){
+  const q=current();
+  if(!q){
+    $("question").textContent=`Session complete. Score: ${state.correct}/${state.attempted}.`;
+    $("options").innerHTML="";
+    $("code").classList.add("hidden");
+    $("submitBtn").disabled=true; $("nextBtn").disabled=true;
+    $("bar").style.width="100%";
+    return;
+  }
+  state.answered=false;
+  $("topicBadge").textContent=q.topic==="pauli"?"Task 1.1 — Pauli":"Task 1.2 — Operations";
+  $("sourceBadge").textContent=q.source;
+  $("typeBadge").textContent=q.type==="multi"?"Select all":"Single choice";
+  $("question").textContent=q.q;
+  if(q.code){ $("code").textContent=q.code; $("code").classList.remove("hidden"); }
+  else $("code").classList.add("hidden");
+  $("options").innerHTML="";
+  q.options.forEach((o,i)=>{
+    const lab=document.createElement("label"); lab.className="opt";
+    const inp=document.createElement("input");
+    inp.type=q.type==="multi"?"checkbox":"radio"; inp.name="opt"; inp.value=i;
+    inp.addEventListener("change",()=>{$("submitBtn").disabled=false;});
+    const span=document.createElement("span"); span.textContent=String.fromCharCode(65+i)+") "+o;
+    lab.append(inp,span); $("options").appendChild(lab);
+  });
+  $("feedback").className="feedback";
+  $("feedbackTitle").textContent=""; $("explanation").textContent="";
+  $("submitBtn").disabled=true; $("nextBtn").disabled=true;
+  $("bar").style.width=`${Math.round((state.idx)/Math.max(1,state.order.length)*100)}%`;
+}
+function submit(){
+  const q=current(); if(!q||state.answered)return;
+  const picked=[...document.querySelectorAll('#options input:checked')].map(x=>Number(x.value)).sort((a,b)=>a-b);
+  const ans=[...q.answer].sort((a,b)=>a-b);
+  const ok=JSON.stringify(picked)===JSON.stringify(ans);
+  state.attempted++; if(ok) state.correct++;
+  state.answered=true;
+  const cs=state.conceptStats[q.concept]||{attempts:0,correct:0};
+  cs.attempts++; if(ok)cs.correct++; state.conceptStats[q.concept]=cs;
+  if(ok) delete state.misses[q.id]; else state.misses[q.id]=true;
+  save(); updateStats();
+
+  const fb=$("feedback");
+  fb.className="feedback "+(ok?"good":"bad");
+  $("feedbackTitle").textContent=ok?"Correct":"Incorrect";
+  $("explanation").textContent=$("mode").value==="practice"
+    ? q.explain
+    : `Correct answer: ${ans.map(i=>String.fromCharCode(65+i)).join(", ")}`;
+  $("submitBtn").disabled=true; $("nextBtn").disabled=false;
+
+  [...document.querySelectorAll('#options input')].forEach(x=>x.disabled=true);
+
+  // simple spaced repetition: when missed in practice, reinsert once later
+  if(!ok && $("mode").value==="practice" && !state.reviewing){
+    const remaining=state.order.slice(state.idx+1);
+    if(!remaining.includes(q.id)){
+      const insertAt=Math.min(state.order.length, state.idx+3+Math.floor(Math.random()*3));
+      state.order.splice(insertAt,0,q.id);
+    }
+  }
+}
+function next(){
+  state.idx++; render();
+}
+$("startBtn").onclick=()=>start(false);
+$("reviewBtn").onclick=()=>start(true);
+$("submitBtn").onclick=submit;
+$("nextBtn").onclick=next;
+$("resetBtn").onclick=()=>{
+  if(confirm("Reset saved missed-question and weak-concept progress?")){
+    localStorage.removeItem("qiskit_s1_misses");
+    localStorage.removeItem("qiskit_s1_concepts");
+    state.misses={}; state.conceptStats={}; updateStats();
+  }
+};
+updateStats();
+</script>
+</body>
+</html>
